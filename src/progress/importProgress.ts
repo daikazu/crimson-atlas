@@ -2,7 +2,7 @@ import type { FoundMap } from '../state/selectors'
 
 /**
  * Accepts any of:
- * - MapGenie `user.locations`: {"544014": true, ...}
+ * - MapGenie `user.locations`: {"123456": true, ...}
  * - the whole MapGenie `user` object: {"locations": {...}, ...}
  * - a plain array of ids
  * - this app's backup: {"found": [ids]}
