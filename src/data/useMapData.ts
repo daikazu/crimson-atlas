@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { desktop } from '../desktop'
 import type { MapData } from './types'
 
 export interface SpriteEntry {
@@ -12,7 +13,8 @@ export type Sprite = Record<string, SpriteEntry>
 
 type LoadState = { status: 'loading' } | { status: 'error'; error: string } | { status: 'ready'; data: MapData; sprite: Sprite }
 
-export const SPRITE_BASE = '/data/sprite/markers'
+const DATA_BASE = desktop?.dataBase ?? '/data'
+export const SPRITE_BASE = `${DATA_BASE}/sprite/markers`
 
 export function useMapData(): LoadState {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
@@ -20,10 +22,10 @@ export function useMapData(): LoadState {
   useEffect(() => {
     const getJson = async <T,>(url: string): Promise<T> => {
       const res = await fetch(url)
-      if (!res.ok) throw new Error(`${res.status} loading ${url} — run \`npm run sync\` first.`)
+      if (!res.ok) throw new Error(`${res.status} loading ${url} — ${desktop ? 'use Map → Refresh Map Data.' : 'run `npm run sync` first.'}`)
       return res.json()
     }
-    Promise.all([getJson<MapData>('/data/pywel.json'), getJson<Sprite>(`${SPRITE_BASE}@2x.json`)])
+    Promise.all([getJson<MapData>(`${DATA_BASE}/pywel.json`), getJson<Sprite>(`${SPRITE_BASE}@2x.json`)])
       .then(([data, sprite]) => setState({ status: 'ready', data, sprite }))
       .catch((e: Error) => setState({ status: 'error', error: e.message }))
   }, [])

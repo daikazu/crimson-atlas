@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMapData } from './data/useMapData'
+import { desktop } from './desktop'
 import { MapView } from './map/MapView'
 import { useStore } from './state/store'
 import { DataProvider, useData } from './ui/DataContext'
@@ -26,6 +27,8 @@ function Shell() {
   const hasSelection = useStore((s) => s.selectedId !== null)
   useHotkeys(searchRef)
   useHashSelection()
+
+  useEffect(() => desktop?.onOpenImport(() => setImportOpen(true)), [])
 
   // First run: 28 resource categories would bury everything else, so start with them off.
   useEffect(() => {

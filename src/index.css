@@ -849,3 +849,21 @@ button:disabled {
 .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
   filter: invert(0.9);
 }
+
+.signin {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.signin .primary {
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+}
+.signin .hint {
+  margin-top: 10px;
+}

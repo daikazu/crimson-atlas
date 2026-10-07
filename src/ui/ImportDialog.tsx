@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { desktop } from '../desktop'
 import { exportProgress, parseProgress } from '../progress/importProgress'
 import { useStore } from '../state/store'
 import { useData } from './DataContext'
@@ -13,21 +14,43 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   const [text, setText] = useState('')
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
+  const [signingIn, setSigningIn] = useState(false)
+
   useEffect(() => {
     dialog.current?.showModal()
   }, [])
 
+  const apply = (allIds: number[], mode: 'merge' | 'replace') => {
+    const ids = allIds.filter((id) => locationById.has(id))
+    if (ids.length === 0) throw new Error('None of those ids match locations on this map.')
+    const before = Object.keys(found).length
+    importFound(ids, mode)
+    const after = Object.keys(useStore.getState().found).length
+    setMessage({ kind: 'ok', text: mode === 'merge' ? `Imported ${ids.length} locations — ${after - before} new. ${after} found in total.` : `Progress replaced: ${after} found.` })
+  }
+
   const run = (mode: 'merge' | 'replace') => {
     try {
-      const ids = parseProgress(text).filter((id) => locationById.has(id))
-      if (ids.length === 0) throw new Error('None of those ids match locations on this map.')
-      const before = Object.keys(found).length
-      importFound(ids, mode)
-      const after = Object.keys(useStore.getState().found).length
-      setMessage({ kind: 'ok', text: mode === 'merge' ? `Imported ${ids.length} locations — ${after - before} new. ${after} found in total.` : `Progress replaced: ${after} found.` })
+      apply(parseProgress(text), mode)
       setText('')
     } catch (e) {
       setMessage({ kind: 'error', text: (e as Error).message })
+    }
+  }
+
+  const signInAndImport = async () => {
+    if (!desktop) return
+    setSigningIn(true)
+    setMessage(null)
+    try {
+      const ids = await desktop.importFromMapGenie()
+      if (ids === null) setMessage({ kind: 'error', text: 'Sign-in window closed before progress was read.' })
+      else if (ids.length === 0) setMessage({ kind: 'ok', text: 'Signed in, but your MapGenie account has no found locations on this map.' })
+      else apply(ids, 'merge')
+    } catch (e) {
+      setMessage({ kind: 'error', text: (e as Error).message })
+    } finally {
+      setSigningIn(false)
     }
   }
 
@@ -44,6 +67,15 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
     <dialog ref={dialog} className="dialog" onClose={onClose} onClick={(e) => e.target === dialog.current && dialog.current.close()}>
       <div className="dialog-inner">
         <h2>Import / export progress</h2>
+
+        {desktop && (
+          <div className="signin">
+            <button className="primary" onClick={signInAndImport} disabled={signingIn}>
+              {signingIn ? 'Waiting for MapGenie…' : 'Sign in to MapGenie & import'}
+            </button>
+            <p className="hint">Opens MapGenie in a window. Your sign-in is remembered for next time. Or paste manually:</p>
+          </div>
+        )}
 
         <ol className="steps">
           <li>

@@ -26,3 +26,5 @@ dist-ssr
 .remember/
 public/data/
 .playwright-mcp/
+dist-electron/
+release/

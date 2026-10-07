@@ -1,7 +1,7 @@
 {
-  "name": "crimson-desert-map",
+  "name": "crimson-atlas",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,26 +9,35 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "sync": "tsx scripts/sync-data.ts"
-  },
-  "dependencies": {
-    "dompurify": "^3.4.16",
-    "maplibre-gl": "^6.13.0",
-    "marked": "^18.1.0",
-    "minisearch": "^7.2.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "zustand": "^5.0.15"
+    "sync": "tsx scripts/sync-data.ts",
+    "desktop": "node scripts/electron-dev.mjs",
+    "build:electron": "vite build -c vite.electron.config.ts",
+    "dist": "npm run build && npm run build:electron && electron-builder",
+    "dist:mac": "npm run build && npm run build:electron && electron-builder --mac",
+    "dist:win": "npm run build && npm run build:electron && electron-builder --win"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "dompurify": "^3.4.16",
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3",
+    "maplibre-gl": "^6.13.0",
+    "marked": "^18.1.0",
+    "minisearch": "^7.2.0",
     "oxlint": "^1.81.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
-    "vitest": "^5.0.3"
-  }
+    "vitest": "^5.0.3",
+    "zustand": "^5.0.15"
+  },
+  "productName": "Crimson Atlas",
+  "description": "Desktop map companion for Crimson Desert",
+  "author": "Mike Wall",
+  "main": "dist-electron/main.cjs"
 }
