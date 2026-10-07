@@ -1,11 +1,17 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type MenuItemConstructorOptions } from 'electron'
 import { join } from 'node:path'
-import { APP_ORIGIN, handleAppScheme, hasMapData, refreshMapData, registerAppScheme } from './appProtocol'
+import type { UpdateSummary } from '../src/data/diff'
+import { APP_ORIGIN, handleAppScheme, registerAppScheme } from './appProtocol'
+import { hasMapData, isStale, updateMapData } from './mapData'
 import { importFromMapGenie } from './mapgenieImport'
 import { loadWindowState, trackWindowState } from './windowState'
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const isMac = process.platform === 'darwin'
+
+/** How old the data may get before a background check downloads it again. */
+const MAX_DATA_AGE_MS = 6 * 60 * 60 * 1000
+const CHECK_INTERVAL_MS = 60 * 60 * 1000
 
 app.setName('Crimson Atlas')
 registerAppScheme()
@@ -44,14 +50,39 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-async function refreshAndReload(win: BrowserWindow): Promise<void> {
+const describeUpdate = (u: UpdateSummary) =>
+  [u.added && `${u.added.toLocaleString()} new`, u.removed && `${u.removed.toLocaleString()} removed`].filter(Boolean).join(', ') ||
+  'location details updated'
+
+/** Menu command: check now, and reload straight away if anything changed. */
+async function checkNow(win: BrowserWindow): Promise<void> {
   try {
-    const { locations } = await refreshMapData()
-    win.webContents.reload()
-    void dialog.showMessageBox(win, { message: 'Map data updated', detail: `${locations.toLocaleString()} locations loaded from MapGenie.` })
+    const update = await updateMapData()
+    if (update.changed) win.webContents.reload()
+    void dialog.showMessageBox(win, {
+      message: update.changed ? 'Map data updated' : 'Map data is up to date',
+      detail: update.changed ? `${describeUpdate(update)} · ${update.total.toLocaleString()} locations in total.` : `${update.total.toLocaleString()} locations.`,
+    })
   } catch (e) {
-    dialog.showErrorBox('Could not refresh map data', (e as Error).message)
+    dialog.showErrorBox('Could not check for map updates', (e as Error).message)
   }
+}
+
+/** Background checks: when the data is old enough, download it and let the renderer offer a reload. */
+function scheduleUpdateChecks(win: BrowserWindow): void {
+  const check = async () => {
+    // First-run downloads are driven by the renderer's loading screen.
+    if (win.isDestroyed() || !hasMapData() || !(await isStale(MAX_DATA_AGE_MS))) return
+    try {
+      const update = await updateMapData()
+      if (update.changed && !win.isDestroyed()) win.webContents.send('data:updated', update)
+    } catch (e) {
+      console.warn('Background map update failed:', (e as Error).message)
+    }
+  }
+  win.webContents.once('did-finish-load', () => void check())
+  const timer = setInterval(() => void check(), CHECK_INTERVAL_MS)
+  win.on('closed', () => clearInterval(timer))
 }
 
 function buildMenu(win: BrowserWindow): void {
@@ -63,7 +94,7 @@ function buildMenu(win: BrowserWindow): void {
       label: 'Map',
       submenu: [
         { label: 'Import Progress from MapGenie…', accelerator: 'CmdOrCtrl+I', click: () => win.webContents.send('menu:open-import') },
-        { label: 'Refresh Map Data', click: () => void refreshAndReload(win) },
+        { label: 'Check for Map Updates', click: () => void checkNow(win) },
       ],
     },
     {
@@ -92,22 +123,24 @@ function buildMenu(win: BrowserWindow): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+function openMainWindow(): void {
+  const win = createWindow()
+  mainWindow = win
+  buildMenu(win)
+  scheduleUpdateChecks(win)
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
+  })
+}
+
 ipcMain.handle('mapgenie:import', () => (mainWindow ? importFromMapGenie(mainWindow) : null))
+ipcMain.handle('data:download', () => updateMapData())
 
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
   handleAppScheme()
-  // A build made without `npm run sync` ships no data; fetch it once on first launch.
-  if (!hasMapData()) await refreshMapData().catch((e: Error) => dialog.showErrorBox('Could not download map data', e.message))
-
-  mainWindow = createWindow()
-  buildMenu(mainWindow)
-  mainWindow.on('closed', () => (mainWindow = null))
-
+  openMainWindow()
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow()
-      buildMenu(mainWindow)
-    }
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow()
   })
 })
 

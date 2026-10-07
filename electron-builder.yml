@@ -4,6 +4,8 @@ directories:
   output: release
 files:
   - dist/**
+  # Map data belongs to MapGenie and is downloaded by the app on first launch, never shipped.
+  - '!dist/data/**'
   - dist-electron/**
   - package.json
 mac:

@@ -3,7 +3,7 @@ import { exportProgress, parseProgress } from './importProgress'
 
 describe('parseProgress', () => {
   it('reads MapGenie user.locations ({id: true})', () => {
-    expect(parseProgress('{"544014":true,"546170":true,"1":false}')).toEqual([544014, 546170])
+    expect(parseProgress('{"100001":true,"100002":true,"1":false}')).toEqual([100001, 100002])
   })
 
   it('reads the whole MapGenie user object', () => {

@@ -103,7 +103,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             const file = e.dataTransfer.files[0]
             if (file) setText(await file.text())
           }}
-          placeholder='{"544014":true,"546170":true,…}  — or drop a backup .json file here'
+          placeholder='{"123456":true,"123457":true,…}  — or drop a backup .json file here'
           rows={5}
           spellCheck={false}
         />

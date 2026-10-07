@@ -28,11 +28,6 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      # Bundles a data snapshot. If MapGenie is unreachable the app downloads it on first launch instead.
-      - name: Download map data
-        run: npm run sync
-        continue-on-error: true
-
       - run: npm run build
       - run: npm run build:electron
       - name: Package

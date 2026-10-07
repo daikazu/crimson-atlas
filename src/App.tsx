@@ -7,12 +7,33 @@ import { DataProvider, useData } from './ui/DataContext'
 import { DetailPanel } from './ui/DetailPanel'
 import { ImportDialog } from './ui/ImportDialog'
 import { Sidebar } from './ui/Sidebar'
+import { UpdateBanner } from './ui/UpdateBanner'
 import { useHashSelection, useHotkeys } from './ui/useHotkeys'
 
 export default function App() {
   const state = useMapData()
   if (state.status === 'loading') return <div className="splash">Loading Pywel…</div>
-  if (state.status === 'error') return <div className="splash splash-error">{state.error}</div>
+  if (state.status === 'downloading')
+    return (
+      <div className="splash">
+        <div>
+          Downloading map data…
+          <p className="splash-sub">Fetching the latest locations from MapGenie. This only happens on first launch.</p>
+        </div>
+      </div>
+    )
+  if (state.status === 'error')
+    return (
+      <div className="splash splash-error">
+        <div>
+          <p>Couldn't load the map data.</p>
+          <p className="splash-sub">{state.error.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}</p>
+          <button className="retry" onClick={state.retry}>
+            Try again
+          </button>
+        </div>
+      </div>
+    )
   return (
     <DataProvider data={state.data} sprite={state.sprite}>
       <Shell />
@@ -41,6 +62,7 @@ function Shell() {
       <Sidebar searchRef={searchRef} onOpenImport={() => setImportOpen(true)} />
       <main className="map-wrap">
         <MapView data={data} />
+        <UpdateBanner />
       </main>
       <DetailPanel />
       {importOpen && <ImportDialog onClose={() => setImportOpen(false)} />}
