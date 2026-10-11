@@ -19,11 +19,14 @@ The builds are unsigned:
 | `/` | Search (↑/↓ to move, Enter to fly there, Esc to clear) |
 | `F` | Toggle found on the selected location |
 | `H` | Toggle Hide found |
-| `Esc` | Close the detail panel or lightbox |
+| `Esc` | Close the detail panel or lightbox; with nothing open, send the overlay back behind the game |
 | Right-click a marker | Toggle found without opening it |
 | Alt-click a category | Show only that category |
 | `Cmd/Ctrl+Shift+T` | Always on top (desktop app) |
 | `Cmd/Ctrl+I` | Import progress (desktop app) |
+| `Cmd/Ctrl+Shift+M` | Show or hide the map over your game, from anywhere (desktop app) |
+
+**Overlay while playing:** press the overlay hotkey in-game to bring the map up over the game, and again (or `Esc`) to drop back into the game. Run the game in borderless or windowed fullscreen — nothing can draw over exclusive fullscreen on Windows. Change the hotkey, or turn it off, under **View → Overlay Hotkey**. To use a controller, map a button to the hotkey with Steam Input.
 
 **Import your MapGenie progress:** in the desktop app, go to **Map → Import Progress from MapGenie… → Sign in to MapGenie & import**. Sign in once; the app remembers the session. In a browser, run `copy(JSON.stringify(user.locations))` in DevTools on the MapGenie Pywel map and paste the result into **Import / export progress**.
 

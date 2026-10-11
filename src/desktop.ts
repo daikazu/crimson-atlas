@@ -12,6 +12,8 @@ export interface DesktopApi {
   importFromMapGenie: () => Promise<number[] | null>
   /** Subscribes to the "Import Progress" menu item; returns an unsubscribe function. */
   onOpenImport: (callback: () => void) => () => void
+  /** Hides the map and returns to the game, if it was summoned with the overlay hotkey; otherwise does nothing. */
+  dismissOverlay: () => void
 }
 
 declare global {

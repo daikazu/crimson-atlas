@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
+import { desktop } from '../desktop'
 import { useStore } from '../state/store'
 
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
 
-/** Global keys: / search · F toggle found · H hide found · Esc close. Lightbox/search handle their own keys. */
+/** Global keys: / search · F toggle found · H hide found · Esc close, then dismiss the overlay. Lightbox/search handle their own keys. */
 export function useHotkeys(searchInput: React.RefObject<HTMLInputElement | null>) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,7 +27,9 @@ export function useHotkeys(searchInput: React.RefObject<HTMLInputElement | null>
           s.setHideFound(!s.hideFound)
           break
         case 'Escape':
-          s.select(null)
+          if (s.selectedId !== null) s.select(null)
+          // Nothing left to close: Esc sends an overlay back behind the game. An open dialog closes itself.
+          else if (!document.querySelector('dialog[open]')) desktop?.dismissOverlay()
           break
       }
     }

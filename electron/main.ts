@@ -4,7 +4,9 @@ import type { UpdateSummary } from '../src/data/diff'
 import { APP_ORIGIN, handleAppScheme, registerAppScheme } from './appProtocol'
 import { hasMapData, isStale, updateMapData } from './mapData'
 import { importFromMapGenie } from './mapgenieImport'
-import { loadWindowState, trackWindowState } from './windowState'
+import { endOverlay, hideOverlay, isOverlaid, setOverlayHotkey, toggleOverlay } from './overlay'
+import { hotkeyLabel, OVERLAY_HOTKEYS } from './overlayHotkeys'
+import { loadWindowState, trackWindowState, type WindowPrefs } from './windowState'
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const isMac = process.platform === 'darwin'
@@ -17,9 +19,11 @@ app.setName('Crimson Atlas')
 registerAppScheme()
 
 let mainWindow: BrowserWindow | null = null
+let prefs: WindowPrefs = { alwaysOnTop: false, overlayHotkey: null }
 
 function createWindow(): BrowserWindow {
   const state = loadWindowState()
+  prefs = { alwaysOnTop: state.alwaysOnTop, overlayHotkey: state.overlayHotkey }
   const win = new BrowserWindow({
     ...state.bounds,
     minWidth: 960,
@@ -31,7 +35,9 @@ function createWindow(): BrowserWindow {
   })
   if (state.maximized) win.maximize()
   win.setAlwaysOnTop(state.alwaysOnTop, 'floating')
-  trackWindowState(win)
+  trackWindowState(win, () => prefs)
+  // The overlay's raised level is temporary; don't leave it behind on a window that is going away.
+  win.on('close', () => endOverlay(win, prefs.alwaysOnTop))
   win.once('ready-to-show', () => win.show())
 
   // Links in location notes (e.g. "Open on MapGenie") go to the system browser, never a new app window.
@@ -85,6 +91,25 @@ function scheduleUpdateChecks(win: BrowserWindow): void {
   win.on('closed', () => clearInterval(timer))
 }
 
+/** Overlay hotkey: summon the map over the game, or dismiss it again. Reopens the window if it was closed. */
+function onOverlayHotkey(): void {
+  if (mainWindow) toggleOverlay(mainWindow, prefs.alwaysOnTop)
+  else openMainWindow()
+}
+
+/** Registers the saved hotkey, turning it off (and saying so) when another app already owns it. */
+function applyOverlayHotkey(accelerator: string | null): void {
+  if (setOverlayHotkey(accelerator, onOverlayHotkey)) {
+    prefs.overlayHotkey = accelerator
+    return
+  }
+  prefs.overlayHotkey = null
+  dialog.showErrorBox(
+    'Overlay hotkey unavailable',
+    `${hotkeyLabel(accelerator!, isMac)} is already used by another app. Pick a different one under View → Overlay Hotkey.`,
+  )
+}
+
 function buildMenu(win: BrowserWindow): void {
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: 'appMenu' } as const] : []),
@@ -103,9 +128,25 @@ function buildMenu(win: BrowserWindow): void {
         {
           label: 'Always on Top',
           type: 'checkbox',
-          checked: win.isAlwaysOnTop(),
+          checked: prefs.alwaysOnTop,
           accelerator: 'CmdOrCtrl+Shift+T',
-          click: (item) => win.setAlwaysOnTop(item.checked, 'floating'),
+          click: (item) => {
+            prefs.alwaysOnTop = item.checked
+            if (!isOverlaid()) win.setAlwaysOnTop(item.checked, 'floating')
+          },
+        },
+        {
+          label: 'Overlay Hotkey',
+          submenu: [...OVERLAY_HOTKEYS, null].map((accelerator) => ({
+            label: accelerator ? hotkeyLabel(accelerator, isMac) : 'Off',
+            type: 'radio' as const,
+            checked: prefs.overlayHotkey === accelerator,
+            click: () => {
+              applyOverlayHotkey(accelerator)
+              // A refused hotkey falls back to Off, so redraw the radio group.
+              buildMenu(win)
+            },
+          })),
         },
         { type: 'separator' },
         { role: 'reload' },
@@ -135,10 +176,15 @@ function openMainWindow(): void {
 
 ipcMain.handle('mapgenie:import', () => (mainWindow ? importFromMapGenie(mainWindow) : null))
 ipcMain.handle('data:download', () => updateMapData())
+ipcMain.on('overlay:dismiss', () => {
+  if (mainWindow && isOverlaid()) hideOverlay(mainWindow, prefs.alwaysOnTop)
+})
 
 app.whenReady().then(() => {
   handleAppScheme()
   openMainWindow()
+  applyOverlayHotkey(prefs.overlayHotkey)
+  if (mainWindow) buildMenu(mainWindow)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) openMainWindow()
   })

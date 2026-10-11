@@ -14,6 +14,7 @@ const api: DesktopApi = {
   onDataUpdated: (callback) => subscribe<UpdateSummary>('data:updated', callback),
   importFromMapGenie: () => ipcRenderer.invoke('mapgenie:import'),
   onOpenImport: (callback) => subscribe('menu:open-import', () => callback()),
+  dismissOverlay: () => ipcRenderer.send('overlay:dismiss'),
 }
 
 contextBridge.exposeInMainWorld('desktop', api)
