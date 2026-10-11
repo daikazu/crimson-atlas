@@ -12,6 +12,10 @@ mac:
   category: public.app-category.games
   # Artwork inset to Apple's icon grid so it matches other Dock icons; Windows uses it edge to edge.
   icon: build/icon-mac.png
+  # Ad-hoc signature: without one, a downloaded copy is reported as "damaged" on Apple silicon.
+  identity: '-'
+  # The hardened runtime only matters for notarization, and blocks an ad-hoc signed app from loading its own frameworks.
+  hardenedRuntime: false
   target:
     - target: dmg
       arch: [arm64, x64]

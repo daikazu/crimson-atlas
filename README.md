@@ -8,8 +8,8 @@ A personal desktop map for Crimson Desert's Pywel, built as a second-monitor com
 
 Grab the latest `.dmg` (macOS) or `.exe` (Windows) from the repo's **Releases** page, or from the artifacts of the **Build desktop apps** workflow run.
 
-The builds are unsigned:
-- **macOS:** right-click the app, choose **Open**, then confirm. If macOS says the app is damaged, run `xattr -cr "/Applications/Crimson Atlas.app"`.
+The builds are not signed with a developer certificate:
+- **macOS:** open the app once, dismiss the warning, then go to **System Settings → Privacy & Security** and click **Open Anyway**. Or skip the prompt with `xattr -cr "/Applications/Crimson Atlas.app"` (also the fix if macOS says the app is damaged, which v0.3.0 and earlier do).
 - **Windows:** on the SmartScreen prompt, click **More info**, then **Run anyway**.
 
 ## Using it
